@@ -1,0 +1,6 @@
+# State is expected to be per-workstation
+/*.tfstate*
+/id_rsa_mgmt
+/id_rsa_mgmt.pub
+/.terraform
+/.terraform.lock.hcl
