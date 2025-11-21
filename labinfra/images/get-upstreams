@@ -12,11 +12,11 @@ qcow_xz_info() {
 	qhdr="$(mktemp)"
 	curl --range 0-$((1024*1024)) -L\# "$1" | unxz > "$qhdr" || true
 	qemu-img info "$qhdr"
-	rm "$qhdr"
+	#rm "$qhdr"
 }
 
 qcow_xz_download() {
-	size=$(qcow_xz_info "$1" | sed -rn 's/^virtual size:.*\((\d+) bytes\).*/\1/p')
+	size=$(qcow_xz_info "$1" | sed -rn 's/^virtual size:.*\(([0-9]+) bytes\).*/\1/p')
 	v vol-create-as --pool "$2" --name "$3" --format qcow2 --capacity "$size"
 	v vol-upload --pool "$2" --vol "$3" --file <(curl -L\# "$1" | unxz) 
 }
