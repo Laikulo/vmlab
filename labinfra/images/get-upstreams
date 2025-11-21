@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -xe
+set -e
 
 virsh_url="qemu:///system"
 v() {
@@ -8,16 +8,29 @@ v() {
 	return $?
 }
 
+log() {
+	echo "$*" >&2
+}
+
+die() {
+	rc="$1"
+	shift 1
+	log "FATAL:" "$@"
+	exit "$rc"
+}
+
 qcow_xz_info() {
+	log "INFO: Getting info for $1"
 	qhdr="$(mktemp)"
-	curl --range 0-$((1024*1024)) -L\# "$1" | unxz > "$qhdr" || true
+	curl --range 0-$((1024*1024)) -L\# "$1" | unxz 2>/dev/null > "$qhdr" || true
 	qemu-img info "$qhdr"
-	#rm "$qhdr"
+	rm "$qhdr"
 }
 
 qcow_xz_download() {
 	size=$(qcow_xz_info "$1" | sed -rn 's/^virtual size:.*\(([0-9]+) bytes\).*/\1/p')
 	v vol-create-as --pool "$2" --name "$3" --format qcow2 --capacity "$size"
+	log "Retriving $2/$3 from $1"
 	v vol-upload --pool "$2" --vol "$3" --file <(curl -L\# "$1" | unxz) 
 }
 
@@ -29,24 +42,52 @@ elevate() {
 	elif command -v doas >/dev/null; then
 		doas "$@"
 	else
-		echo >&2 "Unalbe to elevate, running as current user"
+		log  "WARNING: Unable to elevate, running as current user"
 		"$@"
 	fi
 	return $?
 }
 
-
-if ! v pool-list | grep baseimgs; then
-	pool_dir=/var/lib/libvirt/images/baseimgs
-	if ! [[ -d $pool_dir ]]; then
-		elevate mkdir "$pool_dir"
+ensure_dir_pool() {
+	# pool_name, target
+	if ! v pool-list | grep "$1"; then
+		ensure_dir $2 1
+		ensure_pool $1 --target $2
 	fi
-	v pool-define-as --name baseimgs --type dir --target "$pool_dir"
-	v pool-autostart baseimgs
-	v pool-start baseimgs
-fi
+}
 
-if ! v vol-list --pool baseimgs | grep freebsd-14.3-cloudinit; then
-	qcow_xz_download "https://download.freebsd.org/releases/VM-IMAGES/14.3-RELEASE/amd64/Latest/FreeBSD-14.3-RELEASE-amd64-BASIC-CLOUDINIT-ufs.qcow2.xz" "baseimgs" "freebsd-14.3-cloudinit"
-fi
+ensure_pool() {
+	# pool_name, creation_arg...
+	if ! v pool-list | grep "$1"; then
+		log "Creating pool $1"
+		v pool-define-as --name "$@"
+		v pool-autostart "$1"
+		v pool-start "$1"
+	fi
+}
+
+ensure_dir() {
+	# dir_path, create_as_root
+	if [[ $2 ]]; then
+		elevate bash -c '[[ -d $1 ]] || mkdir $1'
+	else
+		if ! [[ -d "$1" ]]; then
+			mkdir -f "$1"
+		fi
+	fi
+}
+
+ensure_vol() {
+	# pool, name, create_cmd, create_args....
+	local pool_name vol_name
+	pool_name="$1"
+	vol_name="$2"
+	shift 2
+	if ! v vol-list --pool "$pool_name" | grep "$vol_name"; then
+		"$@"
+	fi
+}
+
+ensure_dir_pool baseimgs $pool_dir
+ensure_vol baseimgs freebsd-14.3-cloudinit qcow_xz_download "https://download.freebsd.org/releases/VM-IMAGES/14.3-RELEASE/amd64/Latest/FreeBSD-14.3-RELEASE-amd64-BASIC-CLOUDINIT-ufs.qcow2.xz" "baseimgs" "freebsd-14.3-cloudinit"
 
