@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+
+set -xe
+
+virsh_url="qemu:///system"
+v() {
+	virsh -c "$virsh_url" "$@"
+	return $?
+}
+
+qcow_xz_info() {
+	qhdr="$(mktemp)"
+	curl --range 0-$((1024*1024)) -L\# "$1" | unxz > "$qhdr" || true
+	qemu-img info "$qhdr"
+	rm "$qhdr"
+}
+
+qcow_xz_download() {
+	size=$(qcow_xz_info "$1" | sed -rn 's/^virtual size:.*\((\d+) bytes\).*/\1/p')
+	v vol-create-as --pool "$2" --name "$3" --format qcow2 --capacity "$size"
+	v vol-upload --pool "$2" --vol "$3" --file <(curl -L\# "$1" | unxz) 
+}
+
+elevate() {
+	if [[ $(id -u) -eq 0 ]]; then
+		"$@"
+	elif command -v sudo >/dev/null; then
+		sudo "$@"
+	elif command -v doas >/dev/null; then
+		doas "$@"
+	else
+		echo >&2 "Unalbe to elevate, running as current user"
+		"$@"
+	fi
+	return $?
+}
+
+
+if ! v pool-list | grep baseimgs; then
+	pool_dir=/var/lib/libvirt/images/baseimgs
+	if ! [[ -d $pool_dir ]]; then
+		elevate mkdir "$pool_dir"
+	fi
+	v pool-define-as --name baseimgs --type dir --target "$pool_dir"
+	v pool-autostart baseimgs
+	v pool-start baseimgs
+fi
+
+if ! v vol-list --pool baseimgs | grep freebsd-14.3-cloudinit; then
+	qcow_xz_download "https://download.freebsd.org/releases/VM-IMAGES/14.3-RELEASE/amd64/Latest/FreeBSD-14.3-RELEASE-amd64-BASIC-CLOUDINIT-ufs.qcow2.xz" "baseimgs" "freebsd-14.3-cloudinit"
+fi
+

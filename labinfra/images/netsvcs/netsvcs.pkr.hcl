@@ -27,7 +27,7 @@ source "libvirt" "netsvcs" {
     source {
       type = "backing-store"
       pool = "baseimgs"
-      volume = "FreeBSD-14.3-RELEASE-amd64-BASIC-CLOUDINIT-ufs.qcow2"
+      volume = "freebsd-14.3-cloudinit"
     }
     capacity = "8G"
     alias = "artifact"
@@ -71,8 +71,8 @@ build {
   sources = [ "sources.libvirt.netsvcs" ]
   provisioner "shell" {
     inline = [
-      # TODO: find alternative to su -c, because BSD doesn't allow -c as nonroot
-      "su -c 'pkg install kea tftp-hpa yadifa augeaus'",
+      "su root -c 'pkg update && pkg upgrade -y && pkg install -y kea tftp-hpa yadifa augeas doas'",
+      "su root -c 'echo \"permit nopass freebsd as root\" > /usr/local/etc/doas.conf'",
       ":> ~/.ssh/authorized_keys"
     ]
   }

@@ -5,8 +5,7 @@ resource "libvirt_volume" "netsvcs_boot" {
   size = "21474836480" # 20 GiB
   format = "qcow2"
   base_volume_pool = "baseimgs"
-  # TODO: Make a base image with pkgs already installed
-  base_volume_name = "FreeBSD-14.3-RELEASE-amd64-BASIC-CLOUDINIT-ufs.qcow2"
+  base_volume_name = "vmlab:netsvcs"
 }
 
 resource "libvirt_cloudinit_disk" "netsvcs" {
@@ -17,8 +16,7 @@ resource "libvirt_cloudinit_disk" "netsvcs" {
 resource "libvirt_domain" "netsvcs" {
   name = "vmlab:netsvcs"
   memory = "512"
-  vcpu = 2
-  running = false
+  vcpu = 1
 
   boot_device {
     dev = ["hd"]
@@ -39,5 +37,5 @@ resource "libvirt_domain" "netsvcs" {
   }
 
   cloudinit = libvirt_cloudinit_disk.netsvcs.id
-
+  
 }
