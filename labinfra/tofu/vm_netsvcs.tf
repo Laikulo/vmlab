@@ -10,13 +10,31 @@ resource "libvirt_volume" "netsvcs_boot" {
 
 resource "libvirt_cloudinit_disk" "netsvcs" {
   name = "netsvcs_cloudinit.iso"
-  user_data = "#cloud-config"
+  meta_data = "hostname: 'netsvcs.lab'"
+  user_data = <<-ENDUSER
+    #cloud-config
+    networking:
+      version: 2
+      ethernets:
+        match:
+          macaddress: '02:12:32:10:00:01'
+        addresses:
+          - 10.123.21.5
+    ssh_authorized_keys:
+      - "${tls_private_key.mgmt_ssh_key.public_key_openssh}"
+    ENDUSER
 }
 
 resource "libvirt_domain" "netsvcs" {
   name = "vmlab:netsvcs"
   memory = "512"
   vcpu = 1
+  
+  cpu {
+    mode = "host-passthrough"
+  }
+
+  #machine = "q35"
 
   boot_device {
     dev = ["hd"]
@@ -24,10 +42,7 @@ resource "libvirt_domain" "netsvcs" {
 
   disk {
     volume_id = libvirt_volume.netsvcs_boot.id
-  }
-
-  video {
-    type = "none"
+    scsi = true
   }
 
   console {
@@ -36,6 +51,16 @@ resource "libvirt_domain" "netsvcs" {
     target_type = "serial"
   }
 
-  cloudinit = libvirt_cloudinit_disk.netsvcs.id
   
+
+  network_interface {
+    network_id = libvirt_network.vmlab.id
+    hostname = "netsvcs.lab"
+    addresses = ["10.123.21.5"]
+    mac = "02:12:32:10:00:01"
+    wait_for_lease = false
+  }
+
+
+  cloudinit = libvirt_cloudinit_disk.netsvcs.id
 }

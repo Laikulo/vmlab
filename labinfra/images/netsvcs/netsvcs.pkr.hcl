@@ -73,7 +73,10 @@ build {
     inline = [
       "su root -c 'pkg update && pkg upgrade -y && pkg install -y kea tftp-hpa yadifa augeas doas'",
       "su root -c 'echo \"permit nopass freebsd as root\" > /usr/local/etc/doas.conf'",
-      ":> ~/.ssh/authorized_keys"
+      ":> ~/.ssh/authorized_keys",
+      "doas rm -f /etc/hostid",
+      "doas touch /firstboot",
+      "doas sysrc firstboot_freebsd_update_enable= ifconfig_DEFAULT="
     ]
   }
 }
