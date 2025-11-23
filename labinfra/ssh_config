@@ -1,0 +1,5 @@
+Host ns
+	HostName 10.123.21.1
+	User freebsd
+	IdentityFile ~/z/desklab/labinfra/tofu/id_rsa_mgmt
+

@@ -11,6 +11,13 @@ resource "libvirt_volume" "netsvcs_boot" {
   }
 }
 
+resource "libvirt_volume" "netsvcs_srv" {
+  pool = "default"
+  name = "vmlab_netsvcs_srv"
+  capacity = "109261619200" # 100 GiB
+  format = "qcow2"
+}
+
 resource "libvirt_cloudinit_disk" "netsvcs" {
   name = "vmlab_netsvcs_cloudinit"
   meta_data = "hostname: 'netsvcs.lab'"
@@ -22,7 +29,7 @@ resource "libvirt_cloudinit_disk" "netsvcs" {
         - match:
             macaddress: '02:12:32:10:00:01'
           addresses:
-            - 10.123.21.5
+            - 10.123.21.1
     ssh_authorized_keys:
       - "${trimspace(tls_private_key.mgmt_ssh_key.public_key_openssh)}"
     ENDUSER
@@ -41,6 +48,9 @@ resource "libvirt_volume" "netsvcs_cloudinit" {
 
 resource "libvirt_domain" "netsvcs" {
   name = "vmlab:netsvcs"
+
+  running = true
+
   memory = "512"
   unit = "MiB"
   vcpu = 1
@@ -68,13 +78,22 @@ resource "libvirt_domain" "netsvcs" {
       target_type = "serial"
       target_port = 0
     }]
-    disks = [{
+    disks = [
+    {
       target = { dev = "vda" }
       source = {
         pool = libvirt_volume.netsvcs_boot.pool
         volume = libvirt_volume.netsvcs_boot.name
       }
-    },{
+    },
+    {
+      target = { dev = "vdb" }
+      source = {
+        pool = libvirt_volume.netsvcs_srv.pool
+        volume = libvirt_volume.netsvcs_srv.name
+      }
+    },
+    {
       device = "cdrom"
       target = { dev = "sdb" }
       source = {
@@ -82,6 +101,7 @@ resource "libvirt_domain" "netsvcs" {
         volume = libvirt_volume.netsvcs_cloudinit.name
       }
     }]
+
     interfaces = [{
       model = "virtio"
       mac = "02:12:32:10:00:01"
@@ -92,4 +112,43 @@ resource "libvirt_domain" "netsvcs" {
     }]
   }
 
+  lifecycle {
+    ignore_changes = [
+      devices.consoles[0].source_path
+    ]
+  }
+
+  connection {
+    type = "ssh"
+    user = "freebsd"
+    private_key = tls_private_key.mgmt_ssh_key.private_key_openssh
+    host = "10.123.21.1"
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "doas sysrc tftpd_enable=YES tftpd_flags=\"-s /srv/tftp -l\" kea_enable=YES ",
+      "doas mkdir /srv",
+      "doas -- sh -c 'echo /dev/gpt/srvdata /srv ufs rw 2 2 >> /etc/fstab'",
+      "doas mount /srv",
+    ]
+  }
+
+  provisioner "local-exec" {
+    command = "./deploy-net-config noreload"
+    working_dir = ".."
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "doas service tftpd start",
+      "sleep 20",
+      "doas service kea start",
+      # TODO: Figure out why kea doesn't stay running.
+      # TODO: HTTP server for stage2
+      # TODO: rework deploy-net-config to use rsync (since that is now available)
+    ]
+  }
+
 }
+

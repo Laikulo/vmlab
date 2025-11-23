@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -x
+scp -r net-config ns:net-config
+ssh ns doas ./net-config/place
+ssh ns rm -rf /home/freebsd/net-config
+if [ "$1" != "noreload" ]; then
+	ssh ns doas service kea reload
+fi
+

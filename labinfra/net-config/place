@@ -1,0 +1,8 @@
+#!/bin/sh
+set -x
+conf_dir=/home/freebsd/net-config
+dest_dir=/usr/local/etc/kea
+for f in keactrl kea-dhcp4 kea-ctrl-agent; do
+	install -o root -g wheel -m 644 $conf_dir/$f.conf $dest_dir/$f.conf
+done
+install -o root -g wheel -m 640 $conf_dir/kea-api-password $dest_dir/kea-api-password

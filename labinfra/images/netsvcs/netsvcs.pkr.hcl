@@ -71,7 +71,7 @@ build {
   sources = [ "sources.libvirt.netsvcs" ]
   provisioner "shell" {
     inline = [
-      "su root -c 'pkg update && pkg upgrade -y && pkg install -y kea tftp-hpa yadifa augeas doas'",
+      "su root -c 'pkg update && pkg upgrade -y && pkg install -y kea tftp-hpa yadifa augeas doas rsync caddy'",
       "su root -c 'echo \"permit nopass freebsd as root\" > /usr/local/etc/doas.conf'",
       ":> ~/.ssh/authorized_keys",
       "doas rm -f /etc/hostid",
