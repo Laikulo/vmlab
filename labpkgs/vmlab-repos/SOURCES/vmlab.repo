@@ -1,0 +1,32 @@
+[baseos]
+name=Rocky Linux $releasever - BaseOS
+baseurl=http://10.123.21.1/rocky/$releasever/BaseOS/$basearch/os/
+gpgcheck=1
+enabled=1
+countme=1
+metadata_expire=6h
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-10
+
+[appstream]
+name=Rocky Linux $releasever - AppStream
+baseurl=http://10.123.21.1/rocky/$releasever/AppStream/$basearch/os/
+gpgcheck=1
+enabled=1
+countme=1
+metadata_expire=6h
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-10
+
+[crb]
+name=Rocky Linux $releasever - CRB
+baseurl=http://10.123.21.1/rocky/$releasever/CRB/$basearch/os/
+gpgcheck=1
+enabled=0
+countme=1
+metadata_expire=6h
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-10
+
+[vmlab]
+name=VMlab Packages
+baseurl=http://10.123.21.1/labrpms
+gpgcheck=0
+enabled=a
