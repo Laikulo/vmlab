@@ -78,7 +78,7 @@ resource "libvirt_domain" "netsvcs" {
       target_type = "serial"
       target_port = 0
     }]
-    disks = [
+    disks = concat([
     {
       target = { dev = "vda" }
       source = {
@@ -100,7 +100,15 @@ resource "libvirt_domain" "netsvcs" {
         pool = libvirt_volume.netsvcs_cloudinit.pool
         volume = libvirt_volume.netsvcs_cloudinit.name
       }
-    }]
+    }],[
+      for idx, path in var.squashes: {
+        device = "disk",
+        readonly = true
+        target = { dev = local.squash_drives[idx] }
+        source = {
+          file = path
+        }
+    }])
 
     interfaces = [{
       model = "virtio"
@@ -150,5 +158,22 @@ resource "libvirt_domain" "netsvcs" {
     ]
   }
 
+}
+
+locals {
+  # I'm not about to admit how long I tried to make this a for expression
+  squash_drives = [ 
+    "vdc",
+    "vdd",
+    "vde",
+    "vdf",
+    "vdg",
+    "vdh",
+    "vdi",
+    "vdj",
+    "vdk",
+    "vdj",
+    "vdm",
+  ]
 }
 
