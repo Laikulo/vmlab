@@ -1,0 +1,5 @@
+LABEL r10inst
+	KERNEL http://10.123.21.1/rocky/10/BaseOS/x86_64/os/images/pxeboot/vmlinuz
+	INITRD http://10.123.21.1/rocky/10/BaseOS/x86_64/os/images/pxeboot/initrd.img
+	SYSAPPEND 2
+	APPEND inst.repo=http://10.123.21.1/rocky/10/BaseOS/x86_64/os
