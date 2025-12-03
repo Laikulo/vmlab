@@ -18,8 +18,6 @@ resource "libvirt_volume" "netsvcs_srv" {
   format = "qcow2"
 }
 
-# Todo, need to get this into config-2 format, so we can have netork in metadata
-# nuageinit in 15 doesn't read network from user_data on nocloud anymore
 resource "libvirt_cloudinit_disk" "netsvcs" {
   name = "vmlab_netsvcs_cloudinit"
   meta_data = "hostname: 'netsvcs.lab'"
@@ -31,9 +29,12 @@ resource "libvirt_cloudinit_disk" "netsvcs" {
         - match:
             macaddress: '02:12:32:10:00:01'
           addresses:
-            - 10.123.21.1
+            - 10.123.21.1/24
     ssh_authorized_keys:
       - "${trimspace(tls_private_key.mgmt_ssh_key.public_key_openssh)}"
+    users:
+      - name: freebsd
+        doas: "permit nopass %u as root"
     ENDUSER
 }
 
