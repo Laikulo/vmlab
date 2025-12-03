@@ -23,11 +23,11 @@ source "libvirt" "netsvcs" {
     bus = "virtio"
     
     pool = "baseimgs"
-    name = "vmlab:netsvcs"
+    name = "vmlab:netsvcs:v2"
     source {
       type = "backing-store"
       pool = "baseimgs"
-      volume = "freebsd-14.3-cloudinit"
+      volume = "freebsd-15.0-cloudinit-ufs"
     }
     capacity = "8G"
     alias = "artifact"
@@ -38,13 +38,29 @@ source "libvirt" "netsvcs" {
     source {
       type = "cloud-init"
       # FreeBSD uses nuageinit
-      # This version also has no support for runcmd, or even pkgs, so we use it to get SSH going.
-      # It also doesn't handle scripts on iso9660, because they are not executable
-      # yamlencode is used here (even though packer docs reccomend against) because nuageinit can't parse the json this makes
-      # Also, consider using a tempalte yaml, since a stray newline gets in there somewhere
       user_data = format("#cloud-config\n%s", yamlencode({
         ssh_authorized_keys = [
           data.sshkey.packer.public_key
+        ],
+        users = null,
+        package_updatge = true,
+        package_upgrade = true,
+        packages = [
+          "kea",
+          "tftp-hpa",
+          "yadifa",
+          "augeas",
+          "doas",
+          "rsync",
+          "darkhttpd",
+          "fusefs-squashfuse"
+        ],
+        runcmd = [
+          "rm -f /etc/hostid",
+          "touch /firstboot",
+          "sysrc firstboot_freebsd_update_enable= ifconfig_DEFAULT=",
+          "rm /var/cache/nuageinit/runcmds",
+          "shutdown -p +1"
         ]
       }))
     }
@@ -58,25 +74,14 @@ source "libvirt" "netsvcs" {
   network_address_source = "lease"
   
   communicator {
-    communicator = "ssh"
-    ssh_username = "freebsd"
-    ssh_private_key_file = data.sshkey.packer.private_key_path
+    communicator = "none"
   }
 
-  shutdown_mode = "acpi"
+  # shutdown_mode = "agent" # This won't work, so it is the same as 'none'
+  shutdown_timeout = "600s"
 }
 
 
 build {
   sources = [ "sources.libvirt.netsvcs" ]
-  provisioner "shell" {
-    inline = [
-      "su root -c 'pkg update && pkg upgrade -y && pkg install -y kea tftp-hpa yadifa augeas doas rsync darkhttpd fusefs-squashfuse'",
-      "su root -c 'echo \"permit nopass freebsd as root\" > /usr/local/etc/doas.conf'",
-      ":> ~/.ssh/authorized_keys",
-      "doas rm -f /etc/hostid",
-      "doas touch /firstboot",
-      "doas sysrc firstboot_freebsd_update_enable= ifconfig_DEFAULT="
-    ]
-  }
 }

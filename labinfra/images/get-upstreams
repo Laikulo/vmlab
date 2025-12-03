@@ -89,5 +89,5 @@ ensure_vol() {
 }
 
 ensure_dir_pool baseimgs $pool_dir
-ensure_vol baseimgs freebsd-14.3-cloudinit qcow_xz_download "https://download.freebsd.org/releases/VM-IMAGES/14.3-RELEASE/amd64/Latest/FreeBSD-14.3-RELEASE-amd64-BASIC-CLOUDINIT-ufs.qcow2.xz" "baseimgs" "freebsd-14.3-cloudinit"
+ensure_vol baseimgs freebsd-15.0-cloudinit-ufs qcow_xz_download "https://download.freebsd.org/releases/VM-IMAGES/15.0-RELEASE/amd64/Latest/FreeBSD-15.0-RELEASE-amd64-BASIC-CLOUDINIT-ufs.qcow2.xz" "baseimgs" "freebsd-15.0-cloudinit-ufs"
 

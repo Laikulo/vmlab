@@ -6,7 +6,7 @@ resource "libvirt_volume" "netsvcs_boot" {
   format = "qcow2"
   backing_store = {
     # TODO: Figure out a way to get from pool
-    path = "/var/lib/libvirt/images/baseimgs/vmlab:netsvcs"
+    path = "/var/lib/libvirt/images/baseimgs/vmlab:netsvcs:v2"
     format = "qcow2"
   }
 }
@@ -18,6 +18,8 @@ resource "libvirt_volume" "netsvcs_srv" {
   format = "qcow2"
 }
 
+# Todo, need to get this into config-2 format, so we can have netork in metadata
+# nuageinit in 15 doesn't read network from user_data on nocloud anymore
 resource "libvirt_cloudinit_disk" "netsvcs" {
   name = "vmlab_netsvcs_cloudinit"
   meta_data = "hostname: 'netsvcs.lab'"
